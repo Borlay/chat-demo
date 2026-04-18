@@ -1,0 +1,45 @@
+{
+    "version": 1,
+    "canisters": {
+        "management": {
+            "type": "motoko",
+            "main": "src/management/main.mo"
+        },
+        "messages": {
+            "type": "motoko",
+            "main": "src/messages/main.mo"
+        },
+        "users": {
+            "type": "motoko",
+            "main": "src/users/main.mo"
+        },
+        "internet_identity": {
+            "type": "pull",
+            "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        },
+        "frontend": {
+            "type": "assets",
+            "source": [
+                "src/frontend/dist"
+            ],
+            "dependencies": [
+                "messages",
+                "users",
+                "internet_identity"
+            ]
+        }
+    },
+    "defaults": {
+        "build": {
+            "packtool": "mops sources",
+            "args": ""
+        }
+    },
+    "output_env_file": ".env",
+    "networks": {
+        "local": {
+            "bind": "127.0.0.1:4943",
+            "type": "ephemeral"
+        }
+    }
+}
