@@ -19,6 +19,11 @@ import Cycles "mo:core/Cycles";
 ///   3. The deploy script calls `installCanister(name, initArg, controllers)`
 ///      which create_canisters (first time) or upgrades (subsequent) the
 ///      child and clears the staged wasm buffer.
+// One-time migration: drop the stable `IC` field from the previous version.
+// It held a reference to the IC management actor with a narrow interface;
+// the new version extends that interface (adds `canister_status`) and keeps
+// it as a `transient` binding instead.
+(with migration = func(_ : { IC : Any }) : {} { {} })
 persistent actor Management {
 
     type Result<T> = { #ok : T; #err : Text };
@@ -71,11 +76,11 @@ persistent actor Management {
     } = actor ("aaaaa-aa");
 
     var admin : ?Principal = null;
-    var canisters : Map.Map<Text, CanisterId> = Map.empty();
+    let canisters : Map.Map<Text, CanisterId> = Map.empty();
 
     // Wasm modules being assembled, one per child canister name.
     // Cleared after a successful installCanister call.
-    var wasmChunks : Map.Map<Text, List.List<Blob>> = Map.empty();
+    let wasmChunks : Map.Map<Text, List.List<Blob>> = Map.empty();
 
     func assertAdmin(caller : Principal) : Unit {
         if (Principal.isAnonymous(caller)) {
@@ -98,7 +103,7 @@ persistent actor Management {
     };
 
     public query func listCanisters() : async [(Text, CanisterId)] {
-        var out = List.empty<(Text, CanisterId)>();
+        let out = List.empty<(Text, CanisterId)>();
         for (entry in Map.entries(canisters)) {
             List.add(out, entry);
         };
@@ -125,7 +130,7 @@ persistent actor Management {
         switch (assertAdmin(caller)) {
             case (#err(e)) { #err(e) };
             case (#ok) {
-                ignore Map.remove(wasmChunks, Text.compare, name);
+                Map.remove(wasmChunks, Text.compare, name);
                 #ok;
             };
         };
@@ -156,7 +161,7 @@ persistent actor Management {
         switch (Map.get(wasmChunks, Text.compare, name)) {
             case null { null };
             case (?chunks) {
-                var pieces = List.empty<[Nat8]>();
+                let pieces = List.empty<[Nat8]>();
                 for (c in List.values(chunks)) {
                     List.add(pieces, Blob.toArray(c));
                 };
@@ -271,7 +276,7 @@ persistent actor Management {
         };
 
         // Free staged wasm to reclaim memory.
-        ignore Map.remove(wasmChunks, Text.compare, name);
+        Map.remove(wasmChunks, Text.compare, name);
 
         #ok(canisterId);
     };
