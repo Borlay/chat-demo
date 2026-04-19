@@ -129,7 +129,7 @@ export default function DiagramView() {
     );
 
     return (
-        <section className="chat-view" style={{ height: "100%" }}>
+        <section style={{ width: "100%", height: "100%", minWidth: 0, background: "#1a1d25" }}>
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
