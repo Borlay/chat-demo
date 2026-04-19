@@ -48,7 +48,10 @@ persistent actor Management {
     };
 
     /// Subset of the IC management canister interface we need.
-    let IC : actor {
+    /// `transient` because this is a compile-time actor reference, not state
+    /// that needs to survive upgrades — keeping it transient also lets us
+    /// evolve the interface without tripping the stable-compatibility check.
+    transient let IC : actor {
         create_canister : ({ settings : ?CanisterSettings }) -> async {
             canister_id : Principal;
         };
