@@ -13,6 +13,9 @@ concurrency:
 env:
     DFX_VERSION: "0.30.2"
     NODE_VERSION: "20"
+    # CI runs with a plaintext identity (PEM from secrets). dfx 0.30+ blocks
+    # mainnet calls with an error instead of a warning unless this is set.
+    DFX_WARNING: "-mainnet_plaintext_identity"
 
 jobs:
     deploy:
