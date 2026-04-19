@@ -22,8 +22,44 @@ import Cycles "mo:core/Cycles";
 // One-time migration: drop the stable `IC` field from the previous version.
 // It held a reference to the IC management actor with a narrow interface;
 // the new version extends that interface (adds `canister_status`) and keeps
-// it as a `transient` binding instead.
-(with migration = func(_ : { IC : Any }) : {} { {} })
+// it as a `transient` binding instead. The input type must match the old
+// stable type exactly — `Any` is rejected by the compatibility check as a
+// lossy supertype (M0216).
+(
+    with migration = func(
+        _ : {
+            IC : actor {
+                create_canister : ({
+                    settings : ?{
+                        controllers : ?[Principal];
+                        compute_allocation : ?Nat;
+                        memory_allocation : ?Nat;
+                        freezing_threshold : ?Nat;
+                    };
+                }) -> async { canister_id : Principal };
+                install_code : ({
+                    mode : {
+                        #install;
+                        #reinstall;
+                        #upgrade;
+                    };
+                    canister_id : Principal;
+                    wasm_module : Blob;
+                    arg : Blob;
+                }) -> async ();
+                update_settings : ({
+                    canister_id : Principal;
+                    settings : {
+                        controllers : ?[Principal];
+                        compute_allocation : ?Nat;
+                        memory_allocation : ?Nat;
+                        freezing_threshold : ?Nat;
+                    };
+                }) -> async ();
+            };
+        }
+    ) : {} { {} }
+)
 persistent actor Management {
 
     type Result<T> = { #ok : T; #err : Text };
