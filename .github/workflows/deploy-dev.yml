@@ -187,6 +187,22 @@ jobs:
                   dfx canister call messages setUsersCanister "(principal \"$USERS_ID\")" --network ic
 
             # ---------------------------------------------------------------
+            # Grant the CI principal Prepare + Commit permissions on the asset
+            # canister. The asset canister only auto-grants these to the
+            # principal that installed it (management), not to controllers.
+            # Controllers can still call grant_permission directly; this is
+            # idempotent so it's safe to run on every deploy.
+            # ---------------------------------------------------------------
+            - name: Grant CI permissions on asset canister
+              run: |
+                  FRONTEND_ID=$(node -e "console.log(require('./children.json').frontend)")
+                  for perm in Prepare Commit ManagePermissions; do
+                      dfx canister call "$FRONTEND_ID" grant_permission \
+                          "(record { to_principal = principal \"$CI_PRINCIPAL\"; permission = variant { $perm } })" \
+                          --network ic || true
+                  done
+
+            # ---------------------------------------------------------------
             # Rebuild frontend with the real canister IDs and sync assets.
             # ---------------------------------------------------------------
             - name: Rebuild frontend with canister IDs
@@ -194,8 +210,9 @@ jobs:
               run: npm run build
 
             - name: Sync frontend assets
-              # Management installed the asset wasm + made the CI identity a
-              # controller, so dfx deploy can now upload assets directly.
+              # Management installed the asset wasm and CI is a controller +
+              # has Commit permission (granted in the step above), so dfx can
+              # upload assets directly.
               run: dfx deploy frontend --network ic --no-wallet
 
             - name: Summary
