@@ -27,7 +27,7 @@ export const idlFactory = ({ IDL }) => {
         clearWasm: IDL.Func([IDL.Text], [Unit], []),
         uploadWasmChunk: IDL.Func([IDL.Text, IDL.Vec(IDL.Nat8)], [Unit], []),
         installCanister: IDL.Func(
-            [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Principal)],
+            [IDL.Text, IDL.Vec(IDL.Nat8), IDL.Vec(IDL.Principal), IDL.Bool],
             [PrincipalResult],
             [],
         ),

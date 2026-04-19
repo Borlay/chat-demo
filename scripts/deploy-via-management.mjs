@@ -33,11 +33,13 @@ const CHILDREN = [
         name: "users",
         wasm: ".dfx/local/canisters/users/users.wasm",
         initArg: () => new Uint8Array([0x44, 0x49, 0x44, 0x4c, 0x00, 0x00]), // "DIDL\0\0" = empty Candid.
+        enhancedPersistence: true, // Motoko `persistent actor`.
     },
     {
         name: "messages",
         wasm: ".dfx/local/canisters/messages/messages.wasm",
         initArg: () => new Uint8Array([0x44, 0x49, 0x44, 0x4c, 0x00, 0x00]),
+        enhancedPersistence: true, // Motoko `persistent actor`.
     },
     {
         name: "frontend",
@@ -50,6 +52,7 @@ const CHILDREN = [
                 0x44, 0x49, 0x44, 0x4c, 0x02, 0x6e, 0x01, 0x6c, 0x00, 0x01,
                 0x00, 0x01,
             ]),
+        enhancedPersistence: false, // Rust asset canister, no EOP.
     },
 ];
 
@@ -146,6 +149,7 @@ async function main() {
             child.name,
             Array.from(child.initArg()),
             additionalControllers,
+            child.enhancedPersistence,
         );
         if ("err" in inst) {
             console.error(`installCanister failed: ${inst.err}`);

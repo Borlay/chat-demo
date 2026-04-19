@@ -216,10 +216,14 @@ persistent actor Management {
     /// staged wasm. On subsequent calls, performs an upgrade install instead.
     /// `additionalControllers` is added on top of [self] so dfx / CI identity
     /// can later interact with the canister directly (e.g. asset sync).
+    /// `enhancedPersistence` must be true for Motoko `persistent actor`
+    /// children (Enhanced Orthogonal Persistence) and false for everything
+    /// else (e.g. the Rust asset canister used for the frontend).
     public shared ({ caller }) func installCanister(
         name : Text,
         initArg : Blob,
         additionalControllers : [Principal],
+        enhancedPersistence : Bool,
     ) : async Result<CanisterId> {
         switch (assertAdmin(caller)) {
             case (#err(e)) { return #err(e) };
@@ -291,7 +295,9 @@ persistent actor Management {
                     #upgrade(
                         ?{
                             skip_pre_upgrade = null;
-                            wasm_memory_persistence = ?(#keep);
+                            wasm_memory_persistence = if (enhancedPersistence) {
+                                ?(#keep);
+                            } else { ?(#replace) };
                         }
                     );
                 } else {
