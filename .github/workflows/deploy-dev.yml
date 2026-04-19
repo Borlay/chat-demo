@@ -120,11 +120,13 @@ jobs:
 
             - name: Install / upgrade management canister
               run: |
-                  # dfx writes the previously-installed stable-types file here
-                  # during the upgrade compatibility check. The directory does
-                  # not exist yet on a fresh runner since we never deployed to
-                  # ic from this checkout.
+                  # dfx looks for the newly-built stable-types file under
+                  # .dfx/<network>/canisters/<name>/<name>.most to run the
+                  # upgrade compatibility check. We build on the `local`
+                  # network but install on `ic`, so copy every artifact dfx
+                  # might need over to the `ic` path.
                   mkdir -p .dfx/ic/canisters/management
+                  cp -a .dfx/local/canisters/management/. .dfx/ic/canisters/management/
 
                   dfx canister install management \
                       --network ic \
