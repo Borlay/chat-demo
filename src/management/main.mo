@@ -33,10 +33,18 @@ persistent actor Management {
         freezing_threshold : ?Nat;
     };
 
+    /// Upgrade-time options. `wasm_memory_persistence = ?#keep` is required
+    /// by the IC whenever the target canister uses Enhanced Orthogonal
+    /// Persistence (Motoko `persistent actor`), which all of our children do.
+    type UpgradeArgs = {
+        skip_pre_upgrade : ?Bool;
+        wasm_memory_persistence : ?{ #keep; #replace };
+    };
+
     type InstallMode = {
         #install;
         #reinstall;
-        #upgrade;
+        #upgrade : ?UpgradeArgs;
     };
 
     /// Subset of the IC management canister interface we need.
@@ -54,6 +62,9 @@ persistent actor Management {
             canister_id : Principal;
             settings : CanisterSettings;
         }) -> async ();
+        canister_status : ({ canister_id : Principal }) -> async {
+            module_hash : ?Blob;
+        };
     } = actor ("aaaaa-aa");
 
     var admin : ?Principal = null;
@@ -218,7 +229,31 @@ persistent actor Management {
 
         let mode : InstallMode = switch (existing) {
             case null { #install };
-            case (?_) { #upgrade };
+            case (?_) {
+                // Management's map remembers a canister id from a previous
+                // run, but a prior install_code attempt may have failed
+                // before any wasm was actually installed. Ask the IC for the
+                // real state instead of trusting our map.
+                let hasCode = try {
+                    let status = await IC.canister_status({
+                        canister_id = canisterId;
+                    });
+                    status.module_hash != null;
+                } catch (e) {
+                    return #err("canister_status failed: " # Error.message(e));
+                };
+
+                if (hasCode) {
+                    #upgrade(
+                        ?{
+                            skip_pre_upgrade = null;
+                            wasm_memory_persistence = ?(#keep);
+                        }
+                    );
+                } else {
+                    #install;
+                };
+            };
         };
 
         try {
