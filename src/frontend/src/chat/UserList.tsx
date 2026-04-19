@@ -80,6 +80,11 @@ export default function UserList({
         void fetchPage(next, false);
     };
 
+    const refresh = () => {
+        setOffset(0);
+        void fetchPage(0, true);
+    };
+
     const visible = users.filter(
         (u) => u.principal.toText() !== selfPrincipal.toText(),
     );
@@ -88,13 +93,27 @@ export default function UserList({
 
     return (
         <div className="user-list">
-            <input
-                type="search"
-                placeholder="Search users..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="search"
-            />
+            <div className="user-list-search">
+                <input
+                    type="search"
+                    placeholder="Search users..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    className="search"
+                />
+                <button
+                    type="button"
+                    className="icon-button"
+                    onClick={refresh}
+                    disabled={loading}
+                    title="Refresh user list"
+                    aria-label="Refresh user list"
+                >
+                    <span className={loading ? "spin" : ""} aria-hidden>
+                        ↻
+                    </span>
+                </button>
+            </div>
             {error && <p className="error small">{error}</p>}
             <ul className="users">
                 {visible.length === 0 && !loading && (
