@@ -34,13 +34,14 @@ function ExpandableBox({ data }: NodeProps<BoxNode>) {
     return (
         <div
             style={{
-                border: "1px solid #888",
-                borderRadius: 6,
-                background: "white",
-                padding: 10,
-                minWidth: 180,
-                boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+                border: "1px solid #2a2e39",
+                borderRadius: 8,
+                background: "#ffffff",
+                padding: 12,
+                minWidth: 200,
+                boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
                 fontSize: 14,
+                color: "#0f1115",
             }}
         >
             <Handle type="target" position={Position.Left} />
@@ -48,7 +49,8 @@ function ExpandableBox({ data }: NodeProps<BoxNode>) {
                 onClick={() => canExpand && setOpen((v) => !v)}
                 style={{
                     cursor: canExpand ? "pointer" : "default",
-                    fontWeight: 600,
+                    fontWeight: 700,
+                    color: "#0f1115",
                     display: "flex",
                     alignItems: "center",
                     gap: 6,
@@ -61,9 +63,9 @@ function ExpandableBox({ data }: NodeProps<BoxNode>) {
                 <div
                     style={{
                         marginTop: 8,
-                        fontSize: 12,
-                        color: "#444",
-                        lineHeight: 1.4,
+                        fontSize: 13,
+                        color: "#1f2430",
+                        lineHeight: 1.45,
                     }}
                 >
                     {data.details}
