@@ -1,0 +1,218 @@
+name: Deploy (dev)
+
+on:
+    push:
+        branches: [dev]
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: deploy-dev
+    cancel-in-progress: false
+
+env:
+    DFX_VERSION: "0.24.3"
+    DFX_NETWORK: ic
+    NODE_VERSION: "20"
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        environment: dev
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+
+            - name: Cache dfx
+              id: dfx-cache
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/bin/dfx
+                      ~/.cache/dfinity
+                  key: dfx-${{ env.DFX_VERSION }}
+
+            - name: Install dfx
+              if: steps.dfx-cache.outputs.cache-hit != 'true'
+              run: |
+                  DFXVM_INIT_YES=true sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+                  echo "$HOME/.local/share/dfx/bin" >> "$GITHUB_PATH"
+
+            - name: Add dfx to PATH
+              run: echo "$HOME/.local/share/dfx/bin" >> "$GITHUB_PATH"
+
+            - name: Install mops
+              run: npm install -g ic-mops
+
+            - name: Install mops dependencies
+              run: mops install
+
+            - name: Install scripts dependencies
+              working-directory: scripts
+              run: npm install --no-audit --no-fund
+
+            - name: Install frontend dependencies
+              working-directory: src/frontend
+              run: npm install --no-audit --no-fund
+
+            - name: Import CI identity
+              env:
+                  DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
+              run: |
+                  printf '%s' "$DFX_IDENTITY_PEM" > /tmp/ci-identity.pem
+                  dfx identity import ci /tmp/ci-identity.pem --storage-mode plaintext --force
+                  dfx identity use ci
+                  CI_PRINCIPAL=$(dfx identity get-principal)
+                  echo "CI_PRINCIPAL=$CI_PRINCIPAL" >> "$GITHUB_ENV"
+                  echo "CI principal: $CI_PRINCIPAL"
+
+            # ---------------------------------------------------------------
+            # Build wasms locally so we have artifacts to upload via management.
+            # We never deploy to local replica — we just need its wasm output.
+            # ---------------------------------------------------------------
+            - name: Build wasms via local replica
+              run: |
+                  # Placeholder dist so dfx can package the asset canister wasm.
+                  mkdir -p src/frontend/dist
+                  echo "<!doctype html><title>placeholder</title>" > src/frontend/dist/index.html
+
+                  dfx start --background --clean
+
+                  # Pull Internet Identity (declared as `type: pull` in dfx.json)
+                  # so the local replica has a canister id to satisfy build-time
+                  # dependencies. Non-interactive init accepts default args.
+                  dfx deps pull
+                  dfx deps init --argument '(null)' internet_identity || dfx deps init
+                  dfx deps deploy
+
+                  dfx canister create --all
+                  dfx build
+                  dfx stop
+
+                  ls -lh .dfx/local/canisters/management/management.wasm
+                  ls -lh .dfx/local/canisters/users/users.wasm
+                  ls -lh .dfx/local/canisters/messages/messages.wasm
+                  ls -lh .dfx/local/canisters/frontend/assetstorage.wasm.gz
+
+            # ---------------------------------------------------------------
+            # Ensure the management canister exists on mainnet, then install
+            # the freshly built wasm.
+            # ---------------------------------------------------------------
+            - name: Resolve management canister id
+              env:
+                  MANAGEMENT_CANISTER_ID: ${{ vars.MANAGEMENT_CANISTER_ID }}
+              run: |
+                  mkdir -p .dfx/ic
+                  if [ -z "$MANAGEMENT_CANISTER_ID" ]; then
+                      echo "::notice::No MANAGEMENT_CANISTER_ID variable set; creating new management canister."
+                      # 7T = 0.5T creation fee + 4.5T for creating 3 children
+                      # (1.5T each) + ~2T operating balance for management.
+                      dfx canister create management --network ic --with-cycles 7000000000000
+                      MANAGEMENT_CANISTER_ID=$(dfx canister id management --network ic)
+                      echo "::warning::Created new management canister: $MANAGEMENT_CANISTER_ID — set repository variable MANAGEMENT_CANISTER_ID to this value to reuse it across runs."
+                  else
+                      echo "Using existing management canister: $MANAGEMENT_CANISTER_ID"
+                      cat > canister_ids.json <<EOF
+                  {
+                      "management": { "ic": "$MANAGEMENT_CANISTER_ID" }
+                  }
+                  EOF
+                  fi
+                  echo "MANAGEMENT_CANISTER_ID=$MANAGEMENT_CANISTER_ID" >> "$GITHUB_ENV"
+
+            - name: Install / upgrade management canister
+              run: |
+                  dfx canister install management \
+                      --network ic \
+                      --mode auto \
+                      --wasm .dfx/local/canisters/management/management.wasm \
+                      --yes
+
+            # Management is front-loaded with 7T on creation, which covers
+            # creating all three children (1.5T each) and leaves operating
+            # headroom. Subsequent runs only upgrade, so no top-up is needed.
+            # If management's balance ever gets low, uncomment the deposit
+            # below or run it manually:
+            #   dfx canister deposit-cycles 2000000000000 management --network ic
+
+            # ---------------------------------------------------------------
+            # Upload child wasms to management and install them.
+            # ---------------------------------------------------------------
+            - name: Deploy children via management
+              env:
+                  DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
+              run: |
+                  node scripts/deploy-via-management.mjs \
+                      --management "$MANAGEMENT_CANISTER_ID" \
+                      --network ic \
+                      --ci-principal "$CI_PRINCIPAL" \
+                      > children.json
+                  cat children.json
+
+            - name: Build canister_ids.json + .env for frontend
+              run: |
+                  USERS_ID=$(node -e "console.log(require('./children.json').users)")
+                  MESSAGES_ID=$(node -e "console.log(require('./children.json').messages)")
+                  FRONTEND_ID=$(node -e "console.log(require('./children.json').frontend)")
+
+                  # Internet Identity is the upstream pull canister.
+                  II_ID=$(jq -r '.canisters.internet_identity.id' dfx.json)
+
+                  cat > canister_ids.json <<EOF
+                  {
+                      "management":         { "ic": "$MANAGEMENT_CANISTER_ID" },
+                      "users":              { "ic": "$USERS_ID" },
+                      "messages":           { "ic": "$MESSAGES_ID" },
+                      "frontend":           { "ic": "$FRONTEND_ID" },
+                      "internet_identity":  { "ic": "$II_ID" }
+                  }
+                  EOF
+
+                  cat > .env <<EOF
+                  DFX_NETWORK=ic
+                  CANISTER_ID_MANAGEMENT=$MANAGEMENT_CANISTER_ID
+                  CANISTER_ID_USERS=$USERS_ID
+                  CANISTER_ID_MESSAGES=$MESSAGES_ID
+                  CANISTER_ID_FRONTEND=$FRONTEND_ID
+                  CANISTER_ID_INTERNET_IDENTITY=$II_ID
+                  EOF
+
+                  cat canister_ids.json
+                  cat .env
+
+            # ---------------------------------------------------------------
+            # Wire users canister into messages canister.
+            # ---------------------------------------------------------------
+            - name: Configure messages -> users
+              run: |
+                  USERS_ID=$(node -e "console.log(require('./children.json').users)")
+                  dfx canister call messages setUsersCanister "(principal \"$USERS_ID\")" --network ic
+
+            # ---------------------------------------------------------------
+            # Rebuild frontend with the real canister IDs and sync assets.
+            # ---------------------------------------------------------------
+            - name: Rebuild frontend with canister IDs
+              working-directory: src/frontend
+              run: npm run build
+
+            - name: Sync frontend assets
+              # Management installed the asset wasm + made the CI identity a
+              # controller, so dfx deploy can now upload assets directly.
+              run: dfx deploy frontend --network ic --no-wallet
+
+            - name: Summary
+              run: |
+                  echo "### Deployed canisters" >> "$GITHUB_STEP_SUMMARY"
+                  echo "" >> "$GITHUB_STEP_SUMMARY"
+                  echo "| canister | id |" >> "$GITHUB_STEP_SUMMARY"
+                  echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+                  jq -r 'to_entries[] | "| \(.key) | `\(.value.ic)` |"' canister_ids.json >> "$GITHUB_STEP_SUMMARY"
+                  FRONTEND_ID=$(node -e "console.log(require('./children.json').frontend)")
+                  echo "" >> "$GITHUB_STEP_SUMMARY"
+                  echo "App URL: https://$FRONTEND_ID.icp0.io" >> "$GITHUB_STEP_SUMMARY"

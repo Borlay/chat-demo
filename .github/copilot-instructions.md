@@ -61,13 +61,24 @@ Computer (ICP)**. Follow these rules when generating or modifying code.
 
 ## Local workflow
 
-```powershell
-cd src/frontend; npm install; cd ../..
-dfx start --background --clean
-dfx deps pull; dfx deps init; dfx deps deploy
-cd src/frontend; npm run build; cd ../..
-dfx deploy
-```
+no local deployment
 
-After `dfx deploy`, `.env` at the repo root contains the canister IDs that
-Vite picks up on the next build.
+### All the implementations done should be robus, modular and secured
+- No simple solutions that has security flaws
+- No reliance on frontend checks for security
+- Important security validations should be done on backend
+- Code should be modular and reusable, no copy paste solutions. Create modules and reusable code where it makes sense
+- Prioritize quality and security over speed of development
+- Design and implement stuff for high user load from get go, no short cuts for later improvement
+- Always treat users as bad actors that can send fake data - so protect app from that, dont trust - validate
+- use mo:core instead of mo:base
+- use mo:core/Map structure as primary data storage where key:value retrieval is needed
+- use HashMap only for cache that can be droped on canister upgrade and doesn't need persistance
+- do structural changes if needed, don't optimize for migration or api stability, implement maximal structural changes if that is better long term approach
+
+### Environments
+- Currently there are two environment: dev and prod
+- Backend is running only on main net, no local environment for backend
+- Backend is deployed with github workflows so it has to be maintained, including initialization workflow
+- Frontend i may run locally but it uses dev backend on main net
+- I develop on windows 11 machine with wsl so use dfx with wsl - but dont localy deploy canisters

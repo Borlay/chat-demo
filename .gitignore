@@ -3,6 +3,8 @@ dist
 .dfx
 .env
 canister_ids.json
+children.json
 *.log
+*.pem
 
 .mops
