@@ -3,6 +3,7 @@ import { useAuth } from "../AuthContext";
 import { useActors } from "../hooks/useActors";
 import Sidebar from "../chat/Sidebar";
 import ChatView from "../chat/ChatView";
+import DiagramView from "../diagram/DiagramView";
 import type { Selection } from "../chat/types";
 
 export default function ChatPage() {
@@ -36,13 +37,17 @@ export default function ChatPage() {
                 onSelect={setSelection}
                 onLogout={() => void logout()}
             />
-            <ChatView
-                messagesActor={actors.messages}
-                usersActor={actors.users}
-                selfPrincipal={user.principal}
-                selfName={user.fullName}
-                selection={selection}
-            />
+            {selection.kind === "diagram" ? (
+                <DiagramView />
+            ) : (
+                <ChatView
+                    messagesActor={actors.messages}
+                    usersActor={actors.users}
+                    selfPrincipal={user.principal}
+                    selfName={user.fullName}
+                    selection={selection}
+                />
+            )}
         </div>
     );
 }

@@ -2,10 +2,13 @@ import type { Principal } from "@dfinity/principal";
 
 export type Selection =
     | { kind: "general" }
+    | { kind: "diagram" }
     | { kind: "private"; peer: Principal; peerName: string };
 
 export function selectionKey(sel: Selection): string {
-    return sel.kind === "general" ? "general" : `private:${sel.peer.toText()}`;
+    if (sel.kind === "general") return "general";
+    if (sel.kind === "diagram") return "diagram";
+    return `private:${sel.peer.toText()}`;
 }
 
 export function formatTimestamp(ns: bigint): string {
