@@ -12,7 +12,6 @@ concurrency:
 
 env:
     DFX_VERSION: "0.24.3"
-    DFX_NETWORK: ic
     NODE_VERSION: "20"
 
 jobs:
@@ -81,8 +80,8 @@ jobs:
                   echo "<!doctype html><title>placeholder</title>" > src/frontend/dist/index.html
 
                   dfx start --background --clean
-                  dfx canister create --all
-                  dfx build
+                  dfx canister create --all --network local
+                  dfx build --network local
                   dfx stop
 
                   ls -lh .dfx/local/canisters/management/management.wasm
