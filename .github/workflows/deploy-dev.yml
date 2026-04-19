@@ -11,7 +11,7 @@ concurrency:
     cancel-in-progress: false
 
 env:
-    DFX_VERSION: "0.24.3"
+    DFX_VERSION: "0.30.2"
     NODE_VERSION: "20"
 
 jobs:
