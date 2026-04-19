@@ -34,7 +34,7 @@ jobs:
               uses: actions/cache@v5
               with:
                   path: |
-                      ~/bin/dfx
+                      ~/.local/share/dfx
                       ~/.cache/dfinity
                   key: dfx-${{ env.DFX_VERSION }}
 
