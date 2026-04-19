@@ -10,6 +10,7 @@ interface Props {
     selfPrincipal: Principal;
     selectedPeer: Principal | null;
     onSelectPeer: (user: User) => void;
+    isPeerUnread: (peer: Principal) => boolean;
 }
 
 export default function UserList({
@@ -17,6 +18,7 @@ export default function UserList({
     selfPrincipal,
     selectedPeer,
     onSelectPeer,
+    isPeerUnread,
 }: Props) {
     const [searchInput, setSearchInput] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -126,6 +128,7 @@ export default function UserList({
                 {visible.map((u) => {
                     const active =
                         selectedPeer?.toText() === u.principal.toText();
+                    const showDot = !active && isPeerUnread(u.principal);
                     return (
                         <li key={u.principal.toText()}>
                             <button
@@ -138,6 +141,12 @@ export default function UserList({
                                     {initials(u.fullName)}
                                 </span>
                                 <span className="name">{u.fullName}</span>
+                                {showDot && (
+                                    <span
+                                        className="unread-dot"
+                                        aria-label="Unread messages"
+                                    />
+                                )}
                             </button>
                         </li>
                     );

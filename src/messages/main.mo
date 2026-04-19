@@ -50,6 +50,11 @@ persistent actor Messages {
     // Private conversations keyed by sorted principal pair "a|b".
     var conversations : Map.Map<Text, List.List<Message>> = Map.empty();
 
+    // Per-user peer index: user -> (peer -> lastMessageId). Updated on
+    // every postPrivate so clients can cheaply fetch their own conversation
+    // summaries (used for unread indicators).
+    var userPeers : Map.Map<Principal, Map.Map<Principal, Nat>> = Map.empty();
+
     func conversationKey(a : Principal, b : Principal) : Text {
         let at = Principal.toText(a);
         let bt = Principal.toText(b);
@@ -57,6 +62,20 @@ persistent actor Messages {
             case (#less) { at # "|" # bt };
             case _ { bt # "|" # at };
         };
+    };
+
+    func recordPeer(owner : Principal, peer : Principal, messageId : Nat) {
+        let inner : Map.Map<Principal, Nat> = switch (
+            Map.get(userPeers, Principal.compare, owner)
+        ) {
+            case (?m) { m };
+            case null {
+                let m = Map.empty<Principal, Nat>();
+                Map.add(userPeers, Principal.compare, owner, m);
+                m;
+            };
+        };
+        Map.add(inner, Principal.compare, peer, messageId);
     };
 
     func clampLimit(n : Nat) : Nat {
@@ -216,6 +235,8 @@ persistent actor Messages {
                     };
                 };
                 List.add(conv, msg);
+                recordPeer(caller, recipient, msg.id);
+                recordPeer(recipient, caller, msg.id);
                 #ok(msg);
             };
         };
@@ -229,6 +250,32 @@ persistent actor Messages {
         switch (Map.get(conversations, Text.compare, key)) {
             case null { { messages = []; total = 0 } };
             case (?conv) { paginate(conv, args) };
+        };
+    };
+
+    public type ConversationSummary = {
+        peer : Principal;
+        lastMessageId : Nat;
+    };
+
+    public shared query ({ caller }) func listMyConversations() : async [ConversationSummary] {
+        if (Principal.isAnonymous(caller)) { return [] };
+        switch (Map.get(userPeers, Principal.compare, caller)) {
+            case null { [] };
+            case (?inner) {
+                let out = List.empty<ConversationSummary>();
+                for ((peer, lastMessageId) in Map.entries(inner)) {
+                    List.add(out, { peer; lastMessageId });
+                };
+                List.toArray(out);
+            };
+        };
+    };
+
+    public query func getGeneralLatestId() : async ?Nat {
+        switch (List.last(generalMessages)) {
+            case null { null };
+            case (?m) { ?m.id };
         };
     };
 };

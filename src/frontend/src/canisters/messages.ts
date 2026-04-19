@@ -20,11 +20,18 @@ export interface MessagePage {
 
 export type PostResult = { ok: Message } | { err: string };
 
+export interface ConversationSummary {
+    peer: Principal;
+    lastMessageId: bigint;
+}
+
 export interface MessagesActor {
     postGeneral: (content: string) => Promise<PostResult>;
     getGeneral: (args: PageArgs) => Promise<MessagePage>;
     postPrivate: (peer: Principal, content: string) => Promise<PostResult>;
     getPrivate: (peer: Principal, args: PageArgs) => Promise<MessagePage>;
+    listMyConversations: () => Promise<ConversationSummary[]>;
+    getGeneralLatestId: () => Promise<[] | [bigint]>;
 }
 
 export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
@@ -44,6 +51,11 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
     });
     const PostResult = IDL.Variant({ ok: Message, err: IDL.Text });
 
+    const ConversationSummary = IDL.Record({
+        peer: IDL.Principal,
+        lastMessageId: IDL.Nat,
+    });
+
     return IDL.Service({
         postGeneral: IDL.Func([IDL.Text], [PostResult], []),
         getGeneral: IDL.Func([PageArgs], [MessagePage], ["query"]),
@@ -53,5 +65,11 @@ export const idlFactory: IDL.InterfaceFactory = ({ IDL }) => {
             [MessagePage],
             ["query"],
         ),
+        listMyConversations: IDL.Func(
+            [],
+            [IDL.Vec(ConversationSummary)],
+            ["query"],
+        ),
+        getGeneralLatestId: IDL.Func([], [IDL.Opt(IDL.Nat)], ["query"]),
     });
 };

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../AuthContext";
 import { useActors } from "../hooks/useActors";
+import { useUnreadTracker } from "../hooks/useUnreadTracker";
 import Sidebar from "../chat/Sidebar";
 import ChatView from "../chat/ChatView";
 import DiagramView from "../diagram/DiagramView";
@@ -10,6 +11,17 @@ export default function ChatPage() {
     const { user, identity, logout } = useAuth();
     const actors = useActors(identity);
     const [selection, setSelection] = useState<Selection>({ kind: "general" });
+
+    const unread = useUnreadTracker(
+        actors?.messages ?? null,
+        user?.principal ?? null,
+        selection,
+    );
+
+    // Mark the newly active conversation as read whenever the user switches.
+    useEffect(() => {
+        unread.markSelectionRead(selection);
+    }, [selection, unread]);
 
     if (!user || !identity) {
         return (
@@ -36,6 +48,8 @@ export default function ChatPage() {
                 selection={selection}
                 onSelect={setSelection}
                 onLogout={() => void logout()}
+                generalUnread={unread.isGeneralUnread}
+                isPeerUnread={unread.isPeerUnread}
             />
             {selection.kind === "diagram" ? (
                 <DiagramView />

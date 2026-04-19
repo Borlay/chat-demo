@@ -427,3 +427,23 @@ body:has(.chat-layout) {
 .composer button {
     height: 2.6rem;
 }
+
+.unread-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4f8cff;
+    margin-left: auto;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 2px #14171e;
+}
+
+.channel {
+    display: flex;
+    align-items: center;
+}
+
+.user-item {
+    position: relative;
+}

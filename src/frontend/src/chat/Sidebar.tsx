@@ -10,6 +10,8 @@ interface Props {
     selection: Selection;
     onSelect: (sel: Selection) => void;
     onLogout: () => void;
+    generalUnread: boolean;
+    isPeerUnread: (peer: Principal) => boolean;
 }
 
 export default function Sidebar({
@@ -19,9 +21,14 @@ export default function Sidebar({
     selection,
     onSelect,
     onLogout,
+    generalUnread,
+    isPeerUnread,
 }: Props) {
     const handlePeer = (u: User) =>
         onSelect({ kind: "private", peer: u.principal, peerName: u.fullName });
+
+    const showGeneralDot =
+        generalUnread && selection.kind !== "general";
 
     return (
         <aside className="sidebar">
@@ -39,6 +46,12 @@ export default function Sidebar({
                     onClick={() => onSelect({ kind: "general" })}
                 >
                     <span className="hash">#</span> general
+                    {showGeneralDot && (
+                        <span
+                            className="unread-dot"
+                            aria-label="Unread messages"
+                        />
+                    )}
                 </button>
                 <button
                     type="button"
@@ -58,6 +71,7 @@ export default function Sidebar({
                         selection.kind === "private" ? selection.peer : null
                     }
                     onSelectPeer={handlePeer}
+                    isPeerUnread={isPeerUnread}
                 />
             </div>
 
