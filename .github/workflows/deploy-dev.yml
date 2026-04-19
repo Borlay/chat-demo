@@ -81,14 +81,6 @@ jobs:
                   echo "<!doctype html><title>placeholder</title>" > src/frontend/dist/index.html
 
                   dfx start --background --clean
-
-                  # Pull Internet Identity (declared as `type: pull` in dfx.json)
-                  # so the local replica has a canister id to satisfy build-time
-                  # dependencies. Non-interactive init accepts default args.
-                  dfx deps pull
-                  dfx deps init --argument '(null)' internet_identity || dfx deps init
-                  dfx deps deploy
-
                   dfx canister create --all
                   dfx build
                   dfx stop
@@ -159,8 +151,8 @@ jobs:
                   MESSAGES_ID=$(node -e "console.log(require('./children.json').messages)")
                   FRONTEND_ID=$(node -e "console.log(require('./children.json').frontend)")
 
-                  # Internet Identity is the upstream pull canister.
-                  II_ID=$(jq -r '.canisters.internet_identity.id' dfx.json)
+                  # Internet Identity on mainnet is at this well-known id.
+                  II_ID="rdmx6-jaaaa-aaaaa-aaadq-cai"
 
                   cat > canister_ids.json <<EOF
                   {

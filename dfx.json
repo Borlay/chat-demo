@@ -13,10 +13,6 @@
             "type": "motoko",
             "main": "src/users/main.mo"
         },
-        "internet_identity": {
-            "type": "pull",
-            "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
-        },
         "frontend": {
             "type": "assets",
             "source": [
@@ -24,8 +20,7 @@
             ],
             "dependencies": [
                 "messages",
-                "users",
-                "internet_identity"
+                "users"
             ]
         }
     },
