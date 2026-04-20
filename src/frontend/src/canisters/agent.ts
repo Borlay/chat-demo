@@ -7,10 +7,15 @@ import {
     idlFactory as messagesIdlFactory,
     type MessagesActor,
 } from "./messages";
+import {
+    idlFactory as managementIdlFactory,
+    type ManagementActor,
+} from "./management";
 
 const NETWORK = import.meta.env.VITE_DFX_NETWORK || "local";
 const USERS_CANISTER_ID = import.meta.env.VITE_CANISTER_ID_USERS;
 const MESSAGES_CANISTER_ID = import.meta.env.VITE_CANISTER_ID_MESSAGES;
+const MANAGEMENT_CANISTER_ID = import.meta.env.VITE_CANISTER_ID_MANAGEMENT;
 const II_CANISTER_ID = import.meta.env.VITE_CANISTER_ID_INTERNET_IDENTITY;
 
 export const isLocal = NETWORK !== "ic";
@@ -75,5 +80,22 @@ export async function createMessagesActor(
     return Actor.createActor<MessagesActor>(messagesIdlFactory, {
         agent,
         canisterId: MESSAGES_CANISTER_ID,
+    });
+}
+
+export async function createManagementActor(
+    identity: Identity,
+): Promise<ManagementActor> {
+    if (!MANAGEMENT_CANISTER_ID) {
+        throw new Error(
+            "VITE_CANISTER_ID_MANAGEMENT is not set. Did you run `dfx deploy`?",
+        );
+    }
+
+    const agent = await createAgent(identity);
+
+    return Actor.createActor<ManagementActor>(managementIdlFactory, {
+        agent,
+        canisterId: MANAGEMENT_CANISTER_ID,
     });
 }

@@ -66,9 +66,30 @@ persistent actor Management {
             settings : CanisterSettings;
         }) -> async ();
         canister_status : ({ canister_id : Principal }) -> async {
+            status : { #running; #stopping; #stopped };
+            memory_size : Nat;
+            cycles : Nat;
+            idle_cycles_burned_per_day : Nat;
             module_hash : ?Blob;
         };
     } = actor ("aaaaa-aa");
+
+    type RunStatus = { #running; #stopping; #stopped };
+
+    /// Public snapshot of a canister's runtime state, safe to expose to the
+    /// frontend. For management's own entry we only fill in `cycles` via
+    /// `Cycles.balance()` because a canister is not necessarily a controller
+    /// of itself and calling `canister_status` on self can fail.
+    public type CanisterStatusInfo = {
+        name : Text;
+        canisterId : Principal;
+        cycles : Nat;
+        memorySize : Nat;
+        idleCyclesBurnedPerDay : Nat;
+        moduleHash : ?Blob;
+        status : ?RunStatus;
+        error : ?Text;
+    };
 
     var admin : ?Principal = null;
     let canisters : Map.Map<Text, CanisterId> = Map.empty();
@@ -301,4 +322,59 @@ persistent actor Management {
     };
 
     public query func cyclesBalance() : async Nat { Cycles.balance() };
+
+    /// Returns a runtime snapshot (cycles, memory, module hash, run status)
+    /// for every canister tracked by management, plus an entry for
+    /// management itself. This information is public on the IC dashboard
+    /// anyway, so no authorization gate is applied — it powers the
+    /// read-only "Canisters" tab in the frontend.
+    public func getCanistersStatus() : async [CanisterStatusInfo] {
+        let out = List.empty<CanisterStatusInfo>();
+
+        for ((name, id) in Map.entries(canisters)) {
+            let info : CanisterStatusInfo = try {
+                let s = await IC.canister_status({ canister_id = id });
+                {
+                    name;
+                    canisterId = id;
+                    cycles = s.cycles;
+                    memorySize = s.memory_size;
+                    idleCyclesBurnedPerDay = s.idle_cycles_burned_per_day;
+                    moduleHash = s.module_hash;
+                    status = ?s.status;
+                    error = null;
+                };
+            } catch (e) {
+                {
+                    name;
+                    canisterId = id;
+                    cycles = 0;
+                    memorySize = 0;
+                    idleCyclesBurnedPerDay = 0;
+                    moduleHash = null;
+                    status = null;
+                    error = ?Error.message(e);
+                };
+            };
+            List.add(out, info);
+        };
+
+        // Self entry — management isn't guaranteed to be its own controller,
+        // so we report only what we can read locally.
+        List.add(
+            out,
+            {
+                name = "management";
+                canisterId = Principal.fromActor(Management);
+                cycles = Cycles.balance();
+                memorySize = 0;
+                idleCyclesBurnedPerDay = 0;
+                moduleHash = null;
+                status = null;
+                error = null;
+            },
+        );
+
+        List.toArray(out);
+    };
 };

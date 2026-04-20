@@ -447,3 +447,93 @@ body:has(.chat-layout) {
 .user-item {
     position: relative;
 }
+
+/* ---------- Canisters tab ---------- */
+
+.canisters-view {
+    padding: 1.5rem 2rem;
+    overflow-y: auto;
+}
+
+.canisters-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.canisters-header h2 {
+    margin: 0 0 0.25rem;
+}
+
+.canisters-header p {
+    margin: 0;
+}
+
+.canister-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.canister-card {
+    background: #1b1e26;
+    border: 1px solid #2a2e39;
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.canister-card header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.canister-card h3 {
+    margin: 0;
+    font-size: 1rem;
+    text-transform: capitalize;
+}
+
+.canister-card .status-pill {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.canister-card dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    row-gap: 0.3rem;
+    column-gap: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.canister-card dl>div {
+    display: contents;
+}
+
+.canister-card dt {
+    color: #9aa3b2;
+}
+
+.canister-card dd {
+    margin: 0;
+    word-break: break-all;
+}
+
+.canister-card code {
+    font-size: 0.8em;
+    background: #0f1115;
+}

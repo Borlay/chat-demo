@@ -22,6 +22,9 @@ export default defineConfig(({ mode }) => {
             "import.meta.env.VITE_CANISTER_ID_MESSAGES": JSON.stringify(
                 rootEnv.CANISTER_ID_MESSAGES ?? "",
             ),
+            "import.meta.env.VITE_CANISTER_ID_MANAGEMENT": JSON.stringify(
+                rootEnv.CANISTER_ID_MANAGEMENT ?? "",
+            ),
             "import.meta.env.VITE_CANISTER_ID_INTERNET_IDENTITY":
                 JSON.stringify(
                     rootEnv.CANISTER_ID_INTERNET_IDENTITY ?? "",

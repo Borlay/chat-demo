@@ -60,6 +60,13 @@ export default function Sidebar({
                 >
                     <span className="hash">◆</span> diagram
                 </button>
+                <button
+                    type="button"
+                    className={`channel ${selection.kind === "canisters" ? "active" : ""}`}
+                    onClick={() => onSelect({ kind: "canisters" })}
+                >
+                    <span className="hash">⬢</span> canisters
+                </button>
             </nav>
 
             <div className="sidebar-section">

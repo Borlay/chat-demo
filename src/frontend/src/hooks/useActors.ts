@@ -2,11 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import type { Identity } from "@dfinity/agent";
 import type { UsersActor } from "../canisters/users";
 import type { MessagesActor } from "../canisters/messages";
-import { createMessagesActor, createUsersActor } from "../canisters/agent";
+import type { ManagementActor } from "../canisters/management";
+import {
+    createManagementActor,
+    createMessagesActor,
+    createUsersActor,
+} from "../canisters/agent";
 
 export interface Actors {
     users: UsersActor;
     messages: MessagesActor;
+    management: ManagementActor;
 }
 
 /// Creates and memoizes per-identity users/messages actors.
@@ -23,12 +29,13 @@ export function useActors(identity: Identity | null): Actors | null {
         let cancelled = false;
         identityRef.current = identity;
         (async () => {
-            const [users, messages] = await Promise.all([
+            const [users, messages, management] = await Promise.all([
                 createUsersActor(identity),
                 createMessagesActor(identity),
+                createManagementActor(identity),
             ]);
             if (cancelled || identityRef.current !== identity) return;
-            setActors({ users, messages });
+            setActors({ users, messages, management });
         })().catch((err) => {
             console.error("Failed to create actors", err);
         });

@@ -5,6 +5,7 @@ import { useUnreadTracker } from "../hooks/useUnreadTracker";
 import Sidebar from "../chat/Sidebar";
 import ChatView from "../chat/ChatView";
 import DiagramView from "../diagram/DiagramView";
+import CanistersView from "../canisters_view/CanistersView";
 import type { Selection } from "../chat/types";
 
 export default function ChatPage() {
@@ -53,6 +54,8 @@ export default function ChatPage() {
             />
             {selection.kind === "diagram" ? (
                 <DiagramView />
+            ) : selection.kind === "canisters" ? (
+                <CanistersView managementActor={actors.management} />
             ) : (
                 <ChatView
                     messagesActor={actors.messages}
