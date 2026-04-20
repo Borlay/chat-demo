@@ -1,0 +1,94 @@
+name: Add management as self-controller (one-off)
+
+# One-off manual workflow that adds the management canister as a controller
+# of itself on mainnet. This lets `getCanistersStatus` successfully call
+# `canister_status` on self, so the "Canisters" tab can show memory / module
+# hash / idle burn / run status for management too.
+#
+# Safe to re-run — IC de-duplicates controllers.
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: management-self-controller
+    cancel-in-progress: false
+
+env:
+    DFX_VERSION: "0.30.2"
+    DFX_WARNING: "-mainnet_plaintext_identity"
+
+jobs:
+    add-self-controller:
+        runs-on: ubuntu-latest
+        environment: dev
+        steps:
+            - uses: actions/checkout@v5
+
+            - name: Cache dfx
+              id: dfx-cache
+              uses: actions/cache@v5
+              with:
+                  path: |
+                      ~/.local/share/dfx
+                      ~/.cache/dfinity
+                  key: dfx-${{ env.DFX_VERSION }}
+
+            - name: Install dfx
+              if: steps.dfx-cache.outputs.cache-hit != 'true'
+              run: |
+                  DFXVM_INIT_YES=true sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+                  echo "$HOME/.local/share/dfx/bin" >> "$GITHUB_PATH"
+
+            - name: Add dfx to PATH
+              run: echo "$HOME/.local/share/dfx/bin" >> "$GITHUB_PATH"
+
+            - name: Import CI identity
+              env:
+                  DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
+              run: |
+                  printf '%s' "$DFX_IDENTITY_PEM" > /tmp/ci-identity.pem
+                  dfx identity import ci /tmp/ci-identity.pem --storage-mode plaintext --force
+                  dfx identity use ci
+                  echo "CI principal: $(dfx identity get-principal)"
+
+            - name: Require MANAGEMENT_CANISTER_ID
+              env:
+                  MANAGEMENT_CANISTER_ID: ${{ vars.MANAGEMENT_CANISTER_ID }}
+              run: |
+                  if [ -z "$MANAGEMENT_CANISTER_ID" ]; then
+                      echo "::error::Repository variable MANAGEMENT_CANISTER_ID is not set. Run the Deploy (dev) workflow first."
+                      exit 1
+                  fi
+                  echo "MANAGEMENT_CANISTER_ID=$MANAGEMENT_CANISTER_ID" >> "$GITHUB_ENV"
+
+            - name: Write canister_ids.json
+              run: |
+                  cat > canister_ids.json <<EOF
+                  {
+                      "management": { "ic": "$MANAGEMENT_CANISTER_ID" }
+                  }
+                  EOF
+
+            - name: Show current controllers
+              run: |
+                  dfx canister info management --network ic
+
+            - name: Add management as controller of itself
+              run: |
+                  dfx canister update-settings management \
+                      --network ic \
+                      --add-controller "$MANAGEMENT_CANISTER_ID"
+
+            - name: Show updated controllers
+              run: |
+                  dfx canister info management --network ic
+
+            - name: Summary
+              run: |
+                  echo "### Management self-controller added" >> "$GITHUB_STEP_SUMMARY"
+                  echo "" >> "$GITHUB_STEP_SUMMARY"
+                  echo "- canister: \`$MANAGEMENT_CANISTER_ID\`" >> "$GITHUB_STEP_SUMMARY"
+                  echo "- \`getCanistersStatus\` can now report memory / module hash / burn for management itself." >> "$GITHUB_STEP_SUMMARY"
