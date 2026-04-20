@@ -37,6 +37,9 @@ export default function Sidebar({
                 <p className="hint small">
                     Signed in as <b>{selfName}</b>
                 </p>
+                <p className="hint small principal-line" title={selfPrincipal.toText()}>
+                    <code>{selfPrincipal.toText()}</code>
+                </p>
             </div>
 
             <nav className="channels">

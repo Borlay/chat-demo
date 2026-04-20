@@ -167,6 +167,19 @@ body:has(.chat-layout) {
     margin: 0;
 }
 
+.sidebar-header .principal-line {
+    margin-top: 0.35rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-header .principal-line code {
+    font-size: 0.75rem;
+    user-select: all;
+    cursor: text;
+}
+
 .channels {
     padding: 0.5rem;
     border-bottom: 1px solid #2a2e39;
