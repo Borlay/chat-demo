@@ -1,4 +1,5 @@
 import type { Principal } from "@dfinity/principal";
+import { useState } from "react";
 import type { UsersActor, User } from "../canisters/users";
 import UserList from "./UserList";
 import type { Selection } from "./types";
@@ -30,6 +31,30 @@ export default function Sidebar({
     const showGeneralDot =
         generalUnread && selection.kind !== "general";
 
+    const [copied, setCopied] = useState(false);
+    const principalText = selfPrincipal.toText();
+    const copyPrincipal = async () => {
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(principalText);
+            } else {
+                // Fallback for non-secure contexts.
+                const ta = document.createElement("textarea");
+                ta.value = principalText;
+                ta.style.position = "fixed";
+                ta.style.opacity = "0";
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+            }
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        } catch (err) {
+            console.error("Failed to copy principal", err);
+        }
+    };
+
     return (
         <aside className="sidebar">
             <div className="sidebar-header">
@@ -37,9 +62,18 @@ export default function Sidebar({
                 <p className="hint small">
                     Signed in as <b>{selfName}</b>
                 </p>
-                <p className="hint small principal-line" title={selfPrincipal.toText()}>
-                    <code>{selfPrincipal.toText()}</code>
-                </p>
+                <div className="principal-line" title={principalText}>
+                    <code>{principalText}</code>
+                    <button
+                        type="button"
+                        className="copy-btn"
+                        onClick={() => void copyPrincipal()}
+                        aria-label="Copy principal"
+                        title="Copy principal"
+                    >
+                        {copied ? "✓" : "Copy"}
+                    </button>
+                </div>
             </div>
 
             <nav className="channels">

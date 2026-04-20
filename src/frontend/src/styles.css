@@ -169,15 +169,38 @@ body:has(.chat-layout) {
 
 .sidebar-header .principal-line {
     margin-top: 0.35rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
 }
 
 .sidebar-header .principal-line code {
     font-size: 0.75rem;
     user-select: all;
     cursor: text;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-header .principal-line .copy-btn {
+    flex: 0 0 auto;
+    background: transparent;
+    color: #9aa3b2;
+    border: 1px solid #2a2e39;
+    border-radius: 6px;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.sidebar-header .principal-line .copy-btn:hover {
+    background: #1c2029;
+    color: #e6e6e6;
 }
 
 .channels {
