@@ -61,6 +61,21 @@ function statusColor(label: string): string {
     }
 }
 
+function formatDaysLeft(cycles: bigint, burnPerDay: bigint): string {
+    if (burnPerDay === 0n) return "–";
+    // Integer days + one decimal, computed in bigint to avoid precision loss.
+    const tenths = (cycles * 10n) / burnPerDay;
+    const whole = tenths / 10n;
+    const frac = tenths % 10n;
+    if (whole >= 365n) {
+        const years = (tenths * 10n) / 3650n; // cycles-days → years * 100
+        const y = years / 100n;
+        const yf = years % 100n;
+        return `${y}.${yf.toString().padStart(2, "0")} yr`;
+    }
+    return `${whole}.${frac} days`;
+}
+
 function moduleHashHex(mh: [] | [Uint8Array | number[]]): string {
     if (mh.length === 0) return "–";
     const bytes =
@@ -177,6 +192,15 @@ export default function CanistersView({ managementActor }: Props) {
                                             <dt>Burn / day</dt>
                                             <dd>
                                                 {formatCycles(
+                                                    c.idleCyclesBurnedPerDay,
+                                                )}
+                                            </dd>
+                                        </div>
+                                        <div>
+                                            <dt>Days left</dt>
+                                            <dd>
+                                                {formatDaysLeft(
+                                                    c.cycles,
                                                     c.idleCyclesBurnedPerDay,
                                                 )}
                                             </dd>
