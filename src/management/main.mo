@@ -359,21 +359,36 @@ persistent actor Management {
             List.add(out, info);
         };
 
-        // Self entry — management isn't guaranteed to be its own controller,
-        // so we report only what we can read locally.
-        List.add(
-            out,
+        // Self entry. When management is a controller of itself (see
+        // add-management-self-controller workflow) `canister_status` works
+        // and we report full info. Otherwise fall back to just the cycles
+        // balance we can always read locally.
+        let self = Principal.fromActor(Management);
+        let selfInfo : CanisterStatusInfo = try {
+            let s = await IC.canister_status({ canister_id = self });
             {
                 name = "management";
-                canisterId = Principal.fromActor(Management);
+                canisterId = self;
+                cycles = s.cycles;
+                memorySize = s.memory_size;
+                idleCyclesBurnedPerDay = s.idle_cycles_burned_per_day;
+                moduleHash = s.module_hash;
+                status = ?s.status;
+                error = null;
+            };
+        } catch (e) {
+            {
+                name = "management";
+                canisterId = self;
                 cycles = Cycles.balance();
                 memorySize = 0;
                 idleCyclesBurnedPerDay = 0;
                 moduleHash = null;
                 status = null;
-                error = null;
-            },
-        );
+                error = ?Error.message(e);
+            };
+        };
+        List.add(out, selfInfo);
 
         List.toArray(out);
     };
