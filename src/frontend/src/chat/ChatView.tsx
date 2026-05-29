@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Principal } from "@dfinity/principal";
 import type { MessagesActor, Message } from "../canisters/messages";
 import type { UsersActor, User } from "../canisters/users";
-import { formatTimestamp, type Selection } from "./types";
+import { formatTimestamp, peerDisplayName, shortPrincipal, type Selection } from "./types";
 
 const PAGE_SIZE = 50;
 const POLL_INTERVAL_MS = 3000;
@@ -181,7 +181,7 @@ export default function ChatView({
 
         const seed: Record<string, string> = {};
         seed[selfText] = selfName;
-        if (peerText && selection.kind === "private") {
+        if (peerText && selection.kind === "private" && selection.peerName) {
             seed[peerText] = selection.peerName;
         }
 
@@ -211,7 +211,10 @@ export default function ChatView({
     const header =
         selection.kind === "general"
             ? { title: "# General", sub: "Open chat for all registered users" }
-            : { title: selection.peerName, sub: "Private conversation" };
+            : {
+                  title: peerDisplayName(selection.peer, selection.peerName),
+                  sub: "Private conversation",
+              };
 
     const hasOlder = BigInt(messages.length) < total;
 
@@ -283,7 +286,7 @@ export default function ChatView({
                     placeholder={
                         selection.kind === "general"
                             ? "Message #general"
-                            : `Message ${selection.peerName}`
+                            : `Message ${peerDisplayName(selection.peer, selection.peerName)}`
                     }
                     rows={2}
                     maxLength={4096}
@@ -311,9 +314,4 @@ function mergeNewest(existing: Message[], newest: Message[]): Message[] {
     return [...existing, ...toAppend].sort((a, b) =>
         a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
     );
-}
-
-function shortPrincipal(p: string): string {
-    if (p.length <= 12) return p;
-    return `${p.slice(0, 5)}...${p.slice(-3)}`;
 }

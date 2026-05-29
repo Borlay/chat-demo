@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "../AuthContext";
 import { useActors } from "../hooks/useActors";
 import { useUnreadTracker } from "../hooks/useUnreadTracker";
+import { useUrlSelection } from "../hooks/useUrlSelection";
 import Sidebar from "../chat/Sidebar";
 import ChatView from "../chat/ChatView";
 import DiagramView from "../diagram/DiagramView";
 import CanistersView from "../canisters_view/CanistersView";
-import type { Selection } from "../chat/types";
 
 export default function ChatPage() {
     const { user, identity, logout } = useAuth();
     const actors = useActors(identity);
-    const [selection, setSelection] = useState<Selection>({ kind: "general" });
+    const [selection, setSelection] = useUrlSelection(actors?.users ?? null);
 
     const unread = useUnreadTracker(
         actors?.messages ?? null,
