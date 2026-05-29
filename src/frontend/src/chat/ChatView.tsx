@@ -212,9 +212,9 @@ export default function ChatView({
         selection.kind === "general"
             ? { title: "# General", sub: "Open chat for all registered users" }
             : {
-                  title: peerDisplayName(selection.peer, selection.peerName),
-                  sub: "Private conversation",
-              };
+                title: peerDisplayName(selection.peer, selection.peerName),
+                sub: "Private conversation",
+            };
 
     const hasOlder = BigInt(messages.length) < total;
 
